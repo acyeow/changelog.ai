@@ -20,6 +20,8 @@ import {
 } from "~/components/ui/sidebar";
 import { cn } from "~/lib/utils";
 import Image from "next/image";
+import { api } from "~/trpc/react";
+import useProjects from "~/hooks/use-project";
 
 const items = [
   {
@@ -44,21 +46,10 @@ const items = [
   },
 ];
 
-const projects = [
-  {
-    name: "Project 1",
-  },
-  {
-    name: "Project 2",
-  },
-  {
-    name: "Project 3",
-  },
-];
-
 export function AppSidebar() {
   const pathname = usePathname();
   const { open } = useSidebar();
+  const { projects, projectId, setProjectId } = useProjects();
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
@@ -99,16 +90,16 @@ export function AppSidebar() {
           <SidebarGroupLabel>Projects</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {projects.map((project) => {
+              {projects?.map((project) => {
                 return (
                   <SidebarMenuItem key={project.name}>
                     <SidebarMenuButton asChild>
-                      <div>
+                      <div onClick={() => setProjectId(project.id)}>
                         <div
                           className={cn(
                             "text-primary flex size-6 items-center justify-center rounded-sm border bg-white text-sm",
                             {
-                              "bg-primary text-white": false, // Add condition here to highlight the active project
+                              "bg-primary text-white": project.id === projectId, // Add condition here to highlight the active project
                             },
                           )}
                         >
