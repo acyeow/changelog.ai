@@ -21,7 +21,7 @@ import {
 import { cn } from "~/lib/utils";
 import Image from "next/image";
 import { api } from "~/trpc/react";
-import useProjects from "~/hooks/use-project";
+import useProject from "~/hooks/use-project";
 
 const items = [
   {
@@ -49,7 +49,7 @@ const items = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { open } = useSidebar();
-  const { projects, projectId, setProjectId } = useProjects();
+  const { projects, projectId, setProjectId } = useProject();
   return (
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>

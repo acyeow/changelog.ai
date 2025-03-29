@@ -2,7 +2,7 @@ import React from "react";
 import { api } from "~/trpc/react";
 import { useLocalStorage } from "usehooks-ts";
 
-const useProjects = () => {
+const useProject = () => {
   const { data: projects } = api.project.getProjects.useQuery();
   const [projectId, setProjectId] = useLocalStorage(
     "changelogai-projectId",
@@ -17,4 +17,4 @@ const useProjects = () => {
   };
 };
 
-export default useProjects;
+export default useProject;
