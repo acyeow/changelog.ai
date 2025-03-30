@@ -8,6 +8,7 @@ const DashboardPage = () => {
   const { project } = useProject();
   return (
     <div>
+      {project?.id}
       <div className="flex flex-wrap items-center justify-between gap-y-4">
         <div className="bg-primary w-fit rounded-md px-4 py-3">
           <div className="flex items-center">
@@ -42,14 +43,6 @@ const DashboardPage = () => {
       <div className="mt-8"></div>
       CommitLog
     </div>
-    // <a
-    //   href={project?.githubUrl}
-    //   target="_blank"
-    //   rel="noopener noreferrer"
-    //   className="text-blue-500 hover:underline"
-    // >
-    //   {project?.githubUrl}
-    // </a>
   );
 };
 
