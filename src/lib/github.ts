@@ -18,8 +18,7 @@ type Response = {
 export const getCommitHashes = async (
   githubUrl: string,
 ): Promise<Response[]> => {
-  const sanitizedGithubUrl = githubUrl.replace(/\/.git$/, "");
-  const [owner, repo] = sanitizedGithubUrl.split("/").slice(-2);
+  const [owner, repo] = githubUrl.split("/").slice(-2);
   if (!owner || !repo) {
     throw new Error("Invalid Github URL");
   }
@@ -101,7 +100,10 @@ async function fetchProjectGithubUrl(projectId: string) {
   if (!project?.githubUrl) {
     throw new Error("Project has no Github URL");
   }
-  return { project, githubUrl: project?.githubUrl };
+  const sanitizedGithubUrl = project.githubUrl.endsWith(".git")
+    ? project.githubUrl.slice(0, -4)
+    : project.githubUrl;
+  return { project, githubUrl: sanitizedGithubUrl };
 }
 
 async function filterUnprocessedCommits(
@@ -119,3 +121,21 @@ async function filterUnprocessedCommits(
   );
   return unprocessedCommits;
 }
+
+// const id = "cm909mhwq0000qjefcsyw1ls3";
+
+// const { project, githubUrl } = await fetchProjectGithubUrl(id);
+// const commitHashes = await getCommitHashes(githubUrl);
+// const unprocessedCommits = await filterUnprocessedCommits(id, commitHashes);
+// const summaryResponses = await Promise.allSettled(
+//   unprocessedCommits.map((commit) => {
+//     return summariseCommit(githubUrl, commit.commitHash);
+//   }),
+// );
+// const summaries = summaryResponses.map((response) => {
+//   if (response.status === "fulfilled") {
+//     return response.value;
+//   } else {
+//     return "";
+//   }
+// });

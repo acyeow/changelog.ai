@@ -12,6 +12,7 @@ export const projectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // const sanitizedGithubUrl = input.githubUrl.replace(/\/.git$/, "");
       const project = await ctx.db.project.create({
         data: {
           githubUrl: input.githubUrl,

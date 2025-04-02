@@ -19,9 +19,10 @@ const CreatePage = () => {
   const refetch = useRefetch();
 
   function onSubmit(data: FormInput) {
+    const sanitizedGithubUrl = data.repoUrl.replace(/\/.git$/, "");
     createProject.mutate(
       {
-        githubUrl: data.repoUrl,
+        githubUrl: sanitizedGithubUrl,
         name: data.projectName,
         githubToken: data.githubToken,
       },
