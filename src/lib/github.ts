@@ -1,7 +1,7 @@
 import { Octokit } from "octokit";
 import { db } from "~/server/db";
 import axios from "axios";
-import { aiSummariseCommit } from "./gemini";
+import { aiSummariseCommit } from "./openai";
 
 export const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
@@ -18,7 +18,8 @@ type Response = {
 export const getCommitHashes = async (
   githubUrl: string,
 ): Promise<Response[]> => {
-  const [owner, repo] = githubUrl.split("/").slice(-2);
+  const sanitizedGithubUrl = githubUrl.replace(/\/.git$/, "");
+  const [owner, repo] = sanitizedGithubUrl.split("/").slice(-2);
   if (!owner || !repo) {
     throw new Error("Invalid Github URL");
   }
