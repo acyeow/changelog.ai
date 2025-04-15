@@ -34,6 +34,8 @@ export const aiSummariseCommit = async (diff: string) => {
         because there were more that two relevant files in the hypothetical commit.
         Do not include parts of the example in your summary.
         It it given only as an example of appropriate contents.
+        Do not preface your summary with anything,
+        Only include bullet points.
         
       Please summarise the following diff file: \n\n${diff}`,
   });
