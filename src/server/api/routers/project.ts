@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { pollCommits } from "~/lib/github";
+import { indexGithubRepo } from "~/lib/github-loader";
+
+const sanitizeString = (input: string): string => {
+  return input.replace(/\0/g, ""); // Remove null bytes
+};
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -34,6 +39,7 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
+      await indexGithubRepo(project.id, sanitizedGithubUrl, input.githubToken);
       await pollCommits(project.id);
       return project;
     }),

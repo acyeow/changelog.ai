@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { Document } from "@langchain/core/documents";
 
 export const client = new OpenAI();
 
@@ -41,6 +42,30 @@ export const aiSummariseCommit = async (diff: string) => {
   });
   return response.output_text;
 };
+
+export async function summariseCode(doc: Document) {
+  console.log("getting summary for", doc.metadata.source);
+  const code = doc.pageContent.slice(0, 10000);
+  const response = await client.responses.create({
+    model: "gpt-4.1-nano-2025-04-14",
+    input: `You are an intelligent senior software engineer who specialises in onboarding junior engineers onto projects.
+    You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file.
+    Here is the code:
+    ---
+    ${code}
+    ---
+    Give a summary no more than 100 words of the code above.`,
+  });
+  return response.output_text;
+}
+
+export async function generateEmbedding(summary: string) {
+  const response = await client.embeddings.create({
+    model: "text-embedding-3-small",
+    input: summary,
+  });
+  return response.data[0]?.embedding;
+}
 
 // await aiSummariseCommit(`diff --git a/modules/redisbloom/Makefile b/modules/redisbloom/Makefile
 // index 7aac7a5c3f9..2b2e09f07bb 100644
