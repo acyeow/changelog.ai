@@ -53,6 +53,11 @@ const CreatePage = () => {
           <p className="text-muted-foreground text-sm">
             Enter the URL of your repository to link it to changelog.ai.
           </p>
+          <div className="h-2"></div>
+          <p className="text-muted-foreground text-sm">
+            (Note: Commit summaries take time to generate and occur in the
+            background.)
+          </p>
         </div>
         <div className="h-4"></div>
         <div>

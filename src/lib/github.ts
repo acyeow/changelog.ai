@@ -47,49 +47,71 @@ export const pollCommits = async (projectId: string) => {
     projectId,
     commitHashes,
   );
-  // const summaryResponses = await Promise.allSettled(
-  //   unprocessedCommits.map((commit) => {
-  //     return summariseCommit(githubUrl, commit.commitHash);
-  //   }),
-  // );
-  // const summaries = summaryResponses.map((response) => {
-  //   if (response.status === "fulfilled") {
-  //     return response.value;
-  //   } else {
-  //     return "";
-  //   }
-  // });
 
-  const summaries: string[] = [];
+  // Save commits without summaries
+  const createdCommits = await db.commit.createMany({
+    data: unprocessedCommits.map((commit) => ({
+      projectId: projectId,
+      commitHash: commit.commitHash,
+      commitMessage: commit.commitMessage,
+      commitAuthorName: commit.commitAuthorName,
+      commitAuthorAvatar: commit.commitAuthorAvatar,
+      commitDate: commit.commitDate,
+      summary: "", // No summary initially
+    })),
+  });
 
-  for (const [index, commit] of unprocessedCommits.entries()) {
-    console.log(`Processing commit ${index + 1}/${unprocessedCommits.length}`);
+  // Fetch the IDs of the newly created commits
+  const commitIds = (
+    await db.commit.findMany({
+      where: {
+        projectId,
+        commitHash: {
+          in: unprocessedCommits.map((commit) => commit.commitHash),
+        },
+      },
+      select: { id: true },
+    })
+  ).map((commit) => commit.id);
+
+  // Process summaries in the background
+  processCommitSummaries(githubUrl, commitIds);
+
+  return unprocessedCommits;
+};
+
+const processCommitSummaries = async (
+  githubUrl: string,
+  commitIds: string[], // Accept commit IDs instead of full commit objects
+) => {
+  for (const [index, commitId] of commitIds.entries()) {
+    console.log(`Processing commit ${index + 1}/${commitIds.length}`);
+
+    // Fetch the commit using its ID
+    const commit = await db.commit.findUnique({
+      where: { id: commitId },
+    });
+
+    if (!commit) {
+      console.error(`Commit with ID ${commitId} not found.`);
+      continue;
+    }
+
+    // Generate the summary
     const summary = await summariseCommit(githubUrl, commit.commitHash);
-    summaries.push(summary);
 
-    // Introduce a 30-second delay between each commit processing
-    if (index < unprocessedCommits.length - 1) {
+    // Update the database with the generated summary
+    await db.commit.update({
+      where: { id: commitId },
+      data: { summary },
+    });
+
+    // Introduce a 20-second delay between each commit processing
+    if (index < commitIds.length - 1) {
       console.log("Waiting 20 seconds before processing the next commit...");
       await new Promise((resolve) => setTimeout(resolve, 20000)); // 20 seconds
     }
   }
-
-  //save to db
-  const commits = await db.commit.createMany({
-    data: summaries.map((summary, index) => {
-      console.log("processing commit", index);
-      return {
-        projectId: projectId,
-        commitHash: unprocessedCommits[index]!.commitHash,
-        commitMessage: unprocessedCommits[index]!.commitMessage,
-        commitAuthorName: unprocessedCommits[index]!.commitAuthorName,
-        commitAuthorAvatar: unprocessedCommits[index]!.commitAuthorAvatar,
-        commitDate: unprocessedCommits[index]!.commitDate,
-        summary: summary,
-      };
-    }),
-  });
-  return commits;
 };
 
 async function summariseCommit(githubUrl: string, commitHash: string) {
