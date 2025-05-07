@@ -31,9 +31,9 @@ export const getCommitHashes = async (
       new Date(b.commit.author.date).getTime() -
       new Date(a.commit.author.date).getTime(),
   ) as any[];
-  return sortedCommits.slice(0, 15).map((commit: any) => ({
+  return sortedCommits.slice(0, 10).map((commit: any) => ({
     commitHash: commit.sha as string,
-    commitMessage: commit.commit.message ?? "",
+    commitMessage: commit.commit.message.split("\n")[0] ?? "", // Limit to first line
     commitAuthorName: commit.commit.author.name ?? "",
     commitAuthorAvatar: commit.author.avatar_url ?? "",
     commitDate: commit.commit.author.date ?? "",
@@ -47,18 +47,32 @@ export const pollCommits = async (projectId: string) => {
     projectId,
     commitHashes,
   );
-  const summaryResponses = await Promise.allSettled(
-    unprocessedCommits.map((commit) => {
-      return summariseCommit(githubUrl, commit.commitHash);
-    }),
-  );
-  const summaries = summaryResponses.map((response) => {
-    if (response.status === "fulfilled") {
-      return response.value;
-    } else {
-      return "";
+  // const summaryResponses = await Promise.allSettled(
+  //   unprocessedCommits.map((commit) => {
+  //     return summariseCommit(githubUrl, commit.commitHash);
+  //   }),
+  // );
+  // const summaries = summaryResponses.map((response) => {
+  //   if (response.status === "fulfilled") {
+  //     return response.value;
+  //   } else {
+  //     return "";
+  //   }
+  // });
+
+  const summaries: string[] = [];
+
+  for (const [index, commit] of unprocessedCommits.entries()) {
+    console.log(`Processing commit ${index + 1}/${unprocessedCommits.length}`);
+    const summary = await summariseCommit(githubUrl, commit.commitHash);
+    summaries.push(summary);
+
+    // Introduce a 30-second delay between each commit processing
+    if (index < unprocessedCommits.length - 1) {
+      console.log("Waiting 20 seconds before processing the next commit...");
+      await new Promise((resolve) => setTimeout(resolve, 20000)); // 20 seconds
     }
-  });
+  }
 
   //save to db
   const commits = await db.commit.createMany({

@@ -13,6 +13,16 @@ export const projectRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const sanitizedGithubUrl = input.githubUrl.replace(/\/.git$/, "");
+      // Context validation
+      if (!ctx.user?.userId) {
+        throw new Error("User ID is missing or invalid.");
+      }
+      const userExists = await ctx.db.user.findUnique({
+        where: { id: ctx.user.userId },
+      });
+      if (!userExists) {
+        throw new Error("User does not exist.");
+      }
       const project = await ctx.db.project.create({
         data: {
           githubUrl: input.githubUrl,

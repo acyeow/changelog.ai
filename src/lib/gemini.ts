@@ -1,11 +1,11 @@
-import OpenAI from "openai";
+import { GoogleGenAI } from "@google/genai";
 
-export const client = new OpenAI();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const aiSummariseCommit = async (diff: string) => {
-  const response = await client.responses.create({
-    model: "gpt-4.1-nano-2025-04-14",
-    input: `You are an expert progammer, and you are trying to summarise a git diff.
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash-lite+",
+    contents: `You are an expert progammer, and you are trying to summarise a git diff.
         Reminders about the git diff format:
         For every file, there are few metadata lines, like (for example):
         \`\`\`
@@ -39,41 +39,37 @@ export const aiSummariseCommit = async (diff: string) => {
         
       Please summarise the following diff file: \n\n${diff}`,
   });
-  return response.output_text;
+  return response.text;
 };
 
-// await aiSummariseCommit(`diff --git a/modules/redisbloom/Makefile b/modules/redisbloom/Makefile
-// index 7aac7a5c3f9..2b2e09f07bb 100644
-// --- a/modules/redisbloom/Makefile
-// +++ b/modules/redisbloom/Makefile
-// @@ -1,5 +1,5 @@
-//  SRC_DIR = src
-// -MODULE_VERSION = v8.0.0
-// +MODULE_VERSION = v8.0.1
-//  MODULE_REPO = https://github.com/redisbloom/redisbloom
-//  TARGET_MODULE = $(SRC_DIR)/bin/$(FULL_VARIANT)/redisbloom.so
-
-// diff --git a/modules/redisjson/Makefile b/modules/redisjson/Makefile
-// index 7d314914ff8..269c91ecf32 100644
-// --- a/modules/redisjson/Makefile
-// +++ b/modules/redisjson/Makefile
-// @@ -1,5 +1,5 @@
-//  SRC_DIR = src
-// -MODULE_VERSION = v8.0.0
-// +MODULE_VERSION = v8.0.1
-//  MODULE_REPO = https://github.com/redisjson/redisjson
-//  TARGET_MODULE = $(SRC_DIR)/bin/$(FULL_VARIANT)/rejson.so
-
-// diff --git a/modules/redistimeseries/Makefile b/modules/redistimeseries/Makefile
-// index 6f196fcde3c..32c8eec8174 100644
-// --- a/modules/redistimeseries/Makefile
-// +++ b/modules/redistimeseries/Makefile
-// @@ -1,5 +1,5 @@
-//  SRC_DIR = src
-// -MODULE_VERSION = v8.0.0
-// +MODULE_VERSION = v8.0.1
-//  MODULE_REPO = https://github.com/redistimeseries/redistimeseries
-//  TARGET_MODULE = $(SRC_DIR)/bin/$(FULL_VARIANT)/redistimeseries.so
+// await aiSummariseCommit(`diff --git a/packages/excalidraw/components/Stats/utils.ts b/packages/excalidraw/components/Stats/utils.ts
+// index 769601a46bad..c30777e42177 100644
+// --- a/packages/excalidraw/components/Stats/utils.ts
+// +++ b/packages/excalidraw/components/Stats/utils.ts
+// @@ -215,23 +215,6 @@ export const moveElement = (
+//        updateBindings(latestChildElement, scene, {
+//          simultaneouslyUpdated: originalChildren,
+//        });
+// -
+// -      const boundTextElement = getBoundTextElement(
+// -        latestChildElement,
+// -        originalElementsMap,
+// -      );
+// -      if (boundTextElement) {
+// -        const latestBoundTextElement = elementsMap.get(boundTextElement.id);
+// -        latestBoundTextElement &&
+// -          scene.mutateElement(
+// -            latestBoundTextElement,
+// -            {
+// -              x: boundTextElement.x + changeInX,
+// -              y: boundTextElement.y + changeInY,
+// -            },
+// -            { informMutation: shouldInformMutation, isDragging: false },
+// -          );
+// -      }
+//      });
+//    }
+//  };
 // `)
 //   .then(console.log)
 //   .catch(console.error);
