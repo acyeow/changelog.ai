@@ -35,6 +35,7 @@ model Project {
 
     name            String
     githubUrl       String
+    branch          String      @default("main") // Add branch field with default value
 
     deletedAt       DateTime?
 

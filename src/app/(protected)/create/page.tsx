@@ -11,6 +11,7 @@ type FormInput = {
   repoUrl: string;
   projectName: string;
   githubToken?: string;
+  branch?: string; // Add branch field
 };
 
 const CreatePage = () => {
@@ -25,6 +26,7 @@ const CreatePage = () => {
         githubUrl: sanitizedGithubUrl,
         name: data.projectName,
         githubToken: data.githubToken,
+        branch: data.branch || "main", // Include branch in mutation
       },
       {
         onSuccess: () => {
@@ -32,8 +34,8 @@ const CreatePage = () => {
           refetch();
           reset(); // Reset the form after successful submission
         },
-        onError: () => {
-          toast.error("Failed to create the project.");
+        onError: (error) => {
+          toast.error(`Failed to create the project: ${error.message}`);
         },
       },
     );
@@ -78,6 +80,11 @@ const CreatePage = () => {
             <Input
               {...register("githubToken")}
               placeholder="Github Token (Optional)"
+            />
+            <div className="h-2"></div>
+            <Input
+              {...register("branch")}
+              placeholder="Branch (Default: main)"
             />
             <div className="h-4"></div>
             <Button type="submit" disabled={createProject.isPending}>
