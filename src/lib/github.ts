@@ -2,6 +2,7 @@ import { Octokit } from "octokit";
 import { db } from "~/server/db";
 import axios from "axios";
 import { aiSummariseCommit } from "./openai";
+import { delay } from "./utils";
 
 export const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN,
@@ -49,7 +50,7 @@ export const pollCommits = async (projectId: string) => {
   );
 
   // Save commits without summaries
-  const createdCommits = await db.commit.createMany({
+  await db.commit.createMany({
     data: unprocessedCommits.map((commit) => ({
       projectId: projectId,
       commitHash: commit.commitHash,
@@ -97,20 +98,17 @@ const processCommitSummaries = async (
       continue;
     }
 
-    // Generate the summary
-    const summary = await summariseCommit(githubUrl, commit.commitHash);
+    // Generate the summary with retry logic
+    const summary = await summariseCommitWithRetry(
+      githubUrl,
+      commit.commitHash,
+    );
 
     // Update the database with the generated summary
     await db.commit.update({
       where: { id: commitId },
       data: { summary },
     });
-
-    // Introduce a 20-second delay between each commit processing
-    if (index < commitIds.length - 1) {
-      console.log("Waiting 20 seconds before processing the next commit...");
-      await new Promise((resolve) => setTimeout(resolve, 20000)); // 20 seconds
-    }
   }
 };
 
@@ -122,6 +120,31 @@ async function summariseCommit(githubUrl: string, commitHash: string) {
     },
   });
   return (await aiSummariseCommit(data)) || "";
+}
+
+async function summariseCommitWithRetry(githubUrl: string, commitHash: string) {
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  while (attempts < maxAttempts) {
+    try {
+      return await summariseCommit(githubUrl, commitHash);
+    } catch (error: any) {
+      if (error.response?.status === 429) {
+        attempts++;
+        console.warn(
+          `Rate limit hit while summarizing commit. Retrying in 60 seconds... (Attempt ${attempts}/${maxAttempts})`,
+        );
+        await delay(60000); // Wait for 60 seconds
+      } else {
+        throw error; // Re-throw if not a 429 error
+      }
+    }
+  }
+
+  throw new Error(
+    "Failed to summarize commit after multiple attempts due to rate limiting.",
+  );
 }
 
 async function fetchProjectGithubUrl(projectId: string) {

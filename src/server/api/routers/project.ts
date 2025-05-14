@@ -14,24 +14,17 @@ export const projectRouter = createTRPCRouter({
         name: z.string(),
         githubUrl: z.string(),
         githubToken: z.string().optional(),
+        branch: z.string().optional().default("main"), // Add branch parameter with default
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const sanitizedGithubUrl = input.githubUrl.replace(/\/.git$/, "");
-      // Context validation
-      if (!ctx.user?.userId) {
-        throw new Error("User ID is missing or invalid.");
-      }
-      const userExists = await ctx.db.user.findUnique({
-        where: { id: ctx.user.userId },
-      });
-      if (!userExists) {
-        throw new Error("User does not exist.");
-      }
       const project = await ctx.db.project.create({
         data: {
           githubUrl: input.githubUrl,
           name: input.name,
+          // Store the branch in the database
+          branch: input.branch || "main",
           userToProjects: {
             create: {
               userId: ctx.user.userId!,
@@ -39,7 +32,12 @@ export const projectRouter = createTRPCRouter({
           },
         },
       });
-      await indexGithubRepo(project.id, sanitizedGithubUrl, input.githubToken);
+      await indexGithubRepo(
+        project.id,
+        sanitizedGithubUrl,
+        input.githubToken,
+        input.branch, // Pass branch to indexGithubRepo
+      );
       await pollCommits(project.id);
       return project;
     }),

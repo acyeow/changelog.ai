@@ -2,14 +2,16 @@ import { GithubRepoLoader } from "@langchain/community/document_loaders/web/gith
 import { Document } from "@langchain/core/documents";
 import { generateEmbedding, summariseCode } from "./openai";
 import { db } from "~/server/db";
+import { delay } from "./utils";
 
 export const loadGithubRepo = async (
   githubUrl: string,
   githubToken?: string,
+  branch: string = "main",
 ) => {
   const loader = new GithubRepoLoader(githubUrl, {
     accessToken: githubToken || "",
-    branch: "main",
+    branch,
     ignoreFiles: [
       "package-lock.json",
       "yarn.lock",
@@ -20,8 +22,15 @@ export const loadGithubRepo = async (
     unknown: "warn",
     maxConcurrency: 5,
   });
-  const docs = await loader.load();
-  return docs;
+
+  try {
+    return await loader.load();
+  } catch (error) {
+    console.error("Error loading GitHub repository:", error);
+    console.warn("Retrying after 10 seconds...");
+    await delay(10000); // Introduce a 10-second delay
+    return await loader.load(); // Retry loading the repository
+  }
 };
 
 // console.log(await loadGithubRepo("https://github.com/acyeow/165a-l-store-project"))
@@ -34,8 +43,10 @@ export const indexGithubRepo = async (
   projectId: string,
   githubUrl: string,
   githubToken?: string,
+  branch: string = "main", // Default to main if no branch is provided
 ) => {
-  const docs = await loadGithubRepo(githubUrl, githubToken);
+  console.log(`Loading repo ${githubUrl} with branch ${branch}`);
+  const docs = await loadGithubRepo(githubUrl, githubToken, branch);
   const allEmbeddings = await generateEmbeddings(docs);
   await Promise.allSettled(
     allEmbeddings.map(async (embedding, index) => {
@@ -62,14 +73,35 @@ export const indexGithubRepo = async (
 const generateEmbeddings = async (docs: Document[]) => {
   return await Promise.all(
     docs.map(async (doc) => {
-      const summary = await summariseCode(doc);
-      const embedding = await generateEmbedding(summary);
-      return {
-        summary,
-        embedding,
-        sourceCode: JSON.parse(JSON.stringify(doc.pageContent)),
-        fileName: doc.metadata.source,
-      };
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        try {
+          const summary = await summariseCode(doc);
+          const embedding = await generateEmbedding(summary);
+          return {
+            summary,
+            embedding,
+            sourceCode: JSON.parse(JSON.stringify(doc.pageContent)),
+            fileName: doc.metadata.source,
+          };
+        } catch (error: any) {
+          if (error.response?.status === 429) {
+            attempts++;
+            console.warn(
+              `Rate limit hit while generating embeddings. Retrying in 60 seconds... (Attempt ${attempts}/${maxAttempts})`,
+            );
+            await delay(60000); // Wait for 60 seconds
+          } else {
+            throw error; // Re-throw if not a 429 error
+          }
+        }
+      }
+
+      throw new Error(
+        "Failed to generate embeddings after multiple attempts due to rate limiting.",
+      );
     }),
   );
 };
