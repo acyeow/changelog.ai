@@ -20,8 +20,7 @@ export const aiSummariseCommit = async (diff: string) => {
         A line starting with \`+\` means that it was added.
         A line starting with \`-\` means that it was deleted.
         A line starting with neither \'+\` nor \`-\` is code given for context and better understanding.
-        It is not part of the diff.
-        [...]
+        It is not part of the diff.\n
         EXAMPLE SUMMARY CONTENTS:
         \`\`\`
         * Raised the amount of returned recordings from \`10\` to \`100\` [packages/server/recordings_api.ts], [packages/server/constants.ts]
@@ -35,10 +34,10 @@ export const aiSummariseCommit = async (diff: string) => {
         because there were more that two relevant files in the hypothetical commit.
         Do not include parts of the example in your summary.
         It it given only as an example of appropriate contents.
+        Summarise the commit in 3 bullet points or less.
         Do not preface your summary with anything.
-        Only include bullet points.
-        
-      Please summarise the following diff file: \n\n${diff}`,
+        Only include bullet points starting with \`*\`.\n
+        Please summarise the following diff file: \n\n${diff}`,
   });
   return response.output_text;
 };
