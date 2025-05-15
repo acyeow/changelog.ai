@@ -4,8 +4,6 @@ import { OpenAI } from "openai";
 import { generateEmbedding } from "~/lib/openai";
 import { db } from "~/server/db";
 const client = new OpenAI();
-
-// Define interface for raw database result
 interface RawSimilarityResult {
   fileName: string;
   sourceCode: string;
@@ -17,7 +15,6 @@ export async function askQuestion(question: string, projectId: string) {
   const queryVector = await generateEmbedding(question);
   const vectorQuery = `[${queryVector?.join(",")}]`;
 
-  // Modified query: include summary field and get all needed data
   const result = await db.$queryRaw<RawSimilarityResult[]>`
       SELECT 
         "fileName", 
@@ -32,7 +29,6 @@ export async function askQuestion(question: string, projectId: string) {
 
   const processedQueryVector = parseVectorString(vectorQuery);
 
-  // Process results with similarity calculation in JavaScript
   const processedResults = result
     .map((row) => {
       const rowVector = parseVectorString(row.summaryEmbedding);
@@ -48,9 +44,9 @@ export async function askQuestion(question: string, projectId: string) {
         similarity,
       };
     })
-    .filter((row) => row.similarity > 0.2) // Using lower threshold of 0.2
+    .filter((row) => row.similarity > 0.2)
     .sort((a, b) => b.similarity - a.similarity) // Sort by similarity, highest first
-    .slice(0, 10); // Take top 10
+    .slice(0, 10); // Limit to top 10 results
 
   console.log("Filtered results count:", processedResults.length);
   console.log(
@@ -61,21 +57,16 @@ export async function askQuestion(question: string, projectId: string) {
     })),
   );
 
-  if (processedResults.length === 0) {
-    throw new Error(
-      "No relevant files found - consider adjusting your similarity threshold or query",
-    );
-  }
-
   let context = "";
+  if (processedResults.length === 0) {
+    context +=
+      "No relevant files found - consider adjusting your similarity threshold or query";
+  }
 
   for (const doc of processedResults) {
     context += `source: ${doc.fileName}\ncode content: ${doc.sourceCode}\nsummary of file: ${doc.summary}\n\n`;
   }
 
-  console.log("context", context);
-
-  // Create the response from OpenAI
   const response = await client.responses.create({
     model: "gpt-4.1-nano-2025-04-14",
     input: [
@@ -105,8 +96,6 @@ export async function askQuestion(question: string, projectId: string) {
     ],
   });
 
-  // Instead of iterating over the stream and logging,
-  // simply return the response
   return {
     output: response.output_text,
     filesReference: processedResults,
