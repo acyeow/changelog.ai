@@ -12,16 +12,41 @@ import {
   DialogContent,
 } from "~/components/ui/dialog";
 import Image from "next/image";
-import { set } from "date-fns";
+import { askQuestion } from "./actions";
 
 const AskQuestionCard = () => {
   const { project } = useProject();
   const [open, setOpen] = React.useState(false);
   const [question, setQuestion] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [filesReference, setFilesReference] = React.useState<
+    { fileName: string; sourceCode: string; summary: string }[]
+  >([]);
+  const [answer, setAnswer] = React.useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    if (!project?.id) return;
     e.preventDefault();
+    setLoading(true);
     setOpen(true);
+    setAnswer(""); // Clear previous answer
+
+    try {
+      const { output, filesReference } = await askQuestion(
+        question,
+        project.id,
+      );
+
+      setAnswer(output);
+      setFilesReference(filesReference);
+    } catch (error) {
+      console.error("Error asking question:", error);
+      setAnswer(
+        "Sorry, I encountered an error while processing your question. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <>
@@ -36,6 +61,11 @@ const AskQuestionCard = () => {
               height={100}
             />
           </DialogHeader>
+          {answer}
+          <h1>Files References</h1>
+          {filesReference.map((file) => {
+            return <span>{file.fileName}</span>;
+          })}
         </DialogContent>
       </Dialog>
       <Card className="relative col-span-3">
