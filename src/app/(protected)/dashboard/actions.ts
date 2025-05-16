@@ -44,7 +44,7 @@ export async function askQuestion(question: string, projectId: string) {
         similarity,
       };
     })
-    .filter((row) => row.similarity > 0.25)
+    .filter((row) => row.similarity > 0.2)
     .sort((a, b) => b.similarity - a.similarity) // Sort by similarity, highest first
     .slice(0, 10); // Limit to top 10 results
 

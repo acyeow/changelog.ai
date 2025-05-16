@@ -16,6 +16,8 @@ import { askQuestion } from "./actions";
 import MDEditor from "@uiw/react-md-editor";
 
 import CodeReferences from "./code-references";
+import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 const AskQuestionCard = () => {
   const { project } = useProject();
@@ -26,6 +28,7 @@ const AskQuestionCard = () => {
     { fileName: string; sourceCode: string; summary: string }[]
   >([]); // State to hold file references
   const [answer, setAnswer] = React.useState(""); // State to hold the answer
+  const saveAnswer = api.project.saveAnswer.useMutation();
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (!project?.id) return;
@@ -60,13 +63,40 @@ const AskQuestionCard = () => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[80vw]">
           <DialogHeader>
-            <DialogTitle></DialogTitle>
-            <Image
-              src="undraw_dog_jfxm.svg"
-              alt="changelog.ai"
-              width={100}
-              height={100}
-            />
+            <div className="flex items-center gap-10">
+              <DialogTitle>
+                <Image
+                  src="undraw_dog_jfxm.svg"
+                  alt="changelog.ai"
+                  width={100}
+                  height={100}
+                />
+              </DialogTitle>
+              <Button
+                disabled={saveAnswer.isPending}
+                variant={"outline"}
+                onClick={() => {
+                  saveAnswer.mutate(
+                    {
+                      projectId: project!.id,
+                      question,
+                      answer,
+                      filesReference,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success("Answer saved successfully!");
+                      },
+                      onError: () => {
+                        toast.error("Failed to save answer.");
+                      },
+                    },
+                  );
+                }}
+              >
+                Save Answer
+              </Button>
+            </div>
           </DialogHeader>
           <div data-color-mode="light">
             <MDEditor.Markdown
