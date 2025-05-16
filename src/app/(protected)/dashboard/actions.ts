@@ -44,7 +44,7 @@ export async function askQuestion(question: string, projectId: string) {
         similarity,
       };
     })
-    .filter((row) => row.similarity > 0.2)
+    .filter((row) => row.similarity > 0.25)
     .sort((a, b) => b.similarity - a.similarity) // Sort by similarity, highest first
     .slice(0, 10); // Limit to top 10 results
 
@@ -67,6 +67,7 @@ export async function askQuestion(question: string, projectId: string) {
     context += `source: ${doc.fileName}\ncode content: ${doc.sourceCode}\nsummary of file: ${doc.summary}\n\n`;
   }
 
+  // Create the streaming response with the stream option set to true
   const response = await client.responses.create({
     model: "gpt-4.1-nano-2025-04-14",
     input: [
@@ -94,10 +95,11 @@ export async function askQuestion(question: string, projectId: string) {
         `,
       },
     ],
+    stream: true, // Enable streaming mode
   });
 
   return {
-    output: response.output_text,
+    stream: response, // Return the streaming response
     filesReference: processedResults,
   };
 }

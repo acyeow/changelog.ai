@@ -13,32 +13,39 @@ import {
 } from "~/components/ui/dialog";
 import Image from "next/image";
 import { askQuestion } from "./actions";
+import MDEditor from "@uiw/react-md-editor";
+
+import CodeReferences from "./code-references";
 
 const AskQuestionCard = () => {
   const { project } = useProject();
-  const [open, setOpen] = React.useState(false);
-  const [question, setQuestion] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
+  const [open, setOpen] = React.useState(false); // State to control dialog visibility
+  const [question, setQuestion] = React.useState(""); // State to hold the question
+  const [loading, setLoading] = React.useState(false); // State to indicate loading state
   const [filesReference, setFilesReference] = React.useState<
     { fileName: string; sourceCode: string; summary: string }[]
-  >([]);
-  const [answer, setAnswer] = React.useState("");
+  >([]); // State to hold file references
+  const [answer, setAnswer] = React.useState(""); // State to hold the answer
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (!project?.id) return;
     e.preventDefault();
     setLoading(true);
-    setOpen(true);
     setAnswer(""); // Clear previous answer
+    setFilesReference([]); // Clear previous files reference
 
     try {
-      const { output, filesReference } = await askQuestion(
+      const { stream, filesReference } = await askQuestion(
         question,
         project.id,
       );
-
-      setAnswer(output);
+      setOpen(true);
       setFilesReference(filesReference);
+      for await (const event of stream) {
+        if (event.type === "response.output_text.delta") {
+          setAnswer((prev) => prev + event.delta);
+        }
+      }
     } catch (error) {
       console.error("Error asking question:", error);
       setAnswer(
@@ -51,7 +58,7 @@ const AskQuestionCard = () => {
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[80vw]">
           <DialogHeader>
             <DialogTitle></DialogTitle>
             <Image
@@ -61,11 +68,17 @@ const AskQuestionCard = () => {
               height={100}
             />
           </DialogHeader>
-          {answer}
-          <h1>Files References</h1>
-          {filesReference.map((file) => {
-            return <span>{file.fileName}</span>;
-          })}
+          <div data-color-mode="light">
+            <MDEditor.Markdown
+              source={answer}
+              className="h-full max-h-[30vh] max-w-[70vw] overflow-scroll"
+            />
+          </div>
+          <div className="h-4"></div>
+          <CodeReferences filesReference={filesReference} />
+          <Button type="button" onClick={() => setOpen(false)}>
+            Close
+          </Button>
         </DialogContent>
       </Dialog>
       <Card className="relative col-span-3">
@@ -78,9 +91,13 @@ const AskQuestionCard = () => {
               placeholder="What file should I edit to change the home page?"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
+              disabled={loading}
+              className={loading ? "cursor-not-allowed opacity-70" : ""}
             />
             <div className="h-4"></div>
-            <Button type="submit">Ask changelog.ai</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Processing..." : "Ask changelog.ai"}
+            </Button>
           </form>
         </CardContent>
       </Card>
