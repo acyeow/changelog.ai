@@ -3,8 +3,8 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { pollCommits } from "~/lib/github";
 import { indexGithubRepo } from "~/lib/github-loader";
 
-const sanitizeString = (input: string): string => {
-  return input.replace(/\0/g, ""); // Remove null bytes
+const capitalizeFirstLetter = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 export const projectRouter = createTRPCRouter({
@@ -78,8 +78,23 @@ export const projectRouter = createTRPCRouter({
           answer: input.answer,
           filesReferences: input.filesReference,
           projectId: input.projectId,
-          question: input.question,
+          question: capitalizeFirstLetter(input.question),
           userId: ctx.user.userId!,
+        },
+      });
+    }),
+  getQuestions: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db.question.findMany({
+        where: {
+          projectId: input.projectId,
+        },
+        include: {
+          user: true,
+        },
+        orderBy: {
+          createdAt: "desc",
         },
       });
     }),

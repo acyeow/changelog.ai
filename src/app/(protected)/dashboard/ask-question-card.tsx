@@ -18,6 +18,7 @@ import MDEditor from "@uiw/react-md-editor";
 import CodeReferences from "./code-references";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import useRefetch from "~/hooks/use-refetch";
 
 const AskQuestionCard = () => {
   const { project } = useProject();
@@ -29,6 +30,7 @@ const AskQuestionCard = () => {
   >([]); // State to hold file references
   const [answer, setAnswer] = React.useState(""); // State to hold the answer
   const saveAnswer = api.project.saveAnswer.useMutation();
+  const refetch = useRefetch();
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     if (!project?.id) return;
@@ -86,6 +88,7 @@ const AskQuestionCard = () => {
                     {
                       onSuccess: () => {
                         toast.success("Answer saved successfully!");
+                        refetch();
                       },
                       onError: () => {
                         toast.error("Failed to save answer.");
