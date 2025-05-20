@@ -61,6 +61,9 @@ export const projectRouter = createTRPCRouter({
         where: {
           projectId: input.projectId,
         },
+        orderBy: {
+          commitDate: "desc", // Order by commitDate in descending order (newest first)
+        },
       });
     }),
   saveAnswer: protectedProcedure
